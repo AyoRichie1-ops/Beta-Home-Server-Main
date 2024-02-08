@@ -1,3 +1,4 @@
+const property = require("../models/property");
 const Property = require("../models/property");
 const cloudinary = require("cloudinary").v2;
 const fs = require("fs");
@@ -88,8 +89,9 @@ const handleAddProperty = async (req, res) => {
 };
 
 const handleGetAllProperties = async (req, res) => {
-  const {location, type, bedroom, title} =req.query
+  const {location, type, bedroom, sort} =req.query
   const queryObject= {}
+  let result = Property.find(queryObject)
   if (location) {
     queryObject.location= {$regex:location, $options: 'i'}
   }
@@ -100,12 +102,19 @@ const handleGetAllProperties = async (req, res) => {
     queryObject.bedroom = {$eq: Number(bedroom)}
   }
     
+  if (sort) {
+    result = result.sort(`${sort} -createdAt`);
+  } else {
+    result.sort("-createdAt");
+  }
+
   try {
-    const properties = await Property.find(queryObject).sort("-createdAt")
-    res.status(200).json({success: true, properties})
+    result = result.find(queryObject);
+    const properties = await result;
+    res.status(200).json({ success: true, properties });
   } catch (error) {
-    console.log(error)
-    res.status(404).json(error)
+    console.log(error);
+    res.json(error);
   }
 };
 
@@ -259,20 +268,22 @@ const handleDeleteProperty = async (req, res) => {
   }
 };
 
+
 const handleFeaturedProperties = async (req, res) => {
   try {
-    const housedProperties = await Property.find({propertyType: 'house'}).limit(3)
-    const landedProperties = await Property.find({propertyType: 'land'}).limit(3)
+    const housedProperties = await Property.find({ propertyType: "house" })
+      .sort("-createdAt")
+      .limit(3);
+    const landedProperties = await Property.find({ propertyType: "land" })
+      .sort("-createdAt")
+      .limit(3);
 
-    const featuredproperties = [...housedProperties, ...landedProperties]
-    res.status(200).json({success: true, featuredproperties})
+    const featuredProperties = [...housedProperties, ...landedProperties];
+    res.status(200).json({ success: true, featuredProperties });
   } catch (error) {
     console.log(error);
-    res.json(error)
+    res.json(error);
   }
-}
-const test = (req, res)=>{
-  res.send('testing')
 }
 module.exports = {
   handleAddProperty,
